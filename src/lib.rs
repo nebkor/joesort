@@ -205,5 +205,9 @@ mod tests {
         assert!(a_shape.sorted());
         assert!(d_shape.sorted());
         assert!(!u_shape.sorted());
+
+        assert_eq!(2.0, a_shape.mean());
+        assert_eq!(2.0, d_shape.mean());
+        assert_eq!(2.0, u_shape.mean());
     }
 }

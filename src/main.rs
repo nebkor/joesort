@@ -5,12 +5,11 @@ fn gen_rands<T>(size: usize) -> Vec<T>
 where
     rand::distributions::Standard: Distribution<T>,
 {
-    let mut v: Vec<T> = Vec::with_capacity(size);
-    let mut gen = thread_rng();
-    for _ in 0..size {
-        v.push(gen.gen())
-    }
-    v
+    let mut rng = thread_rng();
+    rand::distributions::Standard
+        .sample_iter(&mut rng)
+        .take(size)
+        .collect()
 }
 
 fn main() {
