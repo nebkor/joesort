@@ -179,41 +179,31 @@ impl<T: Sortable> Extend<T> for Shape<T> {
     }
 }
 
-pub fn joe_sort<T: Sortable>(vals: &mut [T]) -> Vec<T> {
-    moej_sort(&*vals, &Ordering::Less)
+pub fn joe_sort<T: Sortable>(vals: &mut [T]) {
+    moej_sort(vals, &Ordering::Less);
 }
 
 /// Naive merge sort
-fn moej_sort<T: Sortable>(vals: &[T], order: &Ordering) -> Vec<T> {
-    let lsorted: Vec<T>;
-    let rsorted: Vec<T>;
+fn moej_sort<T: Sortable>(vals: &mut [T], order: &Ordering) {
     if vals.len() < 2 {
-        return vals.to_owned();
+        return;
     }
-    if vals.len() == 2 {
-        lsorted = vec![vals[0]];
-        rsorted = vec![vals[1]];
-    } else {
-        let split = vals.len() / 2;
-        let (l_orig, r_orig) = vals.split_at(split);
-        lsorted = moej_sort(l_orig, order);
-        rsorted = moej_sort(r_orig, order);
-    }
+
+    let mid = vals.len() / 2;
+    let (l_orig, r_orig) = vals.split_at_mut(mid);
+    moej_sort(l_orig, order);
+    moej_sort(r_orig, order);
 
     // now merge
     let mut lidx = 0;
-    let mut ridx = 0;
-    let lenl = lsorted.len();
-    let lenr = rsorted.len();
+    let mut ridx = mid;
+    let mut sorted = Vec::with_capacity(vals.len());
 
-    let mut sorted = Vec::with_capacity(1.max(vals.len()));
-
-    while (lidx < lenl) && (ridx < lenr) {
-        let l = lsorted[lidx];
-        let r = rsorted[ridx];
-
+    while lidx < mid && ridx < vals.len() {
+        let l = vals[lidx];
+        let r = vals[ridx];
         if let Some(ord) = r.partial_cmp(&l) {
-            if &ord == order {
+            if ord == *order {
                 ridx += 1;
                 sorted.push(r);
             } else {
@@ -223,14 +213,14 @@ fn moej_sort<T: Sortable>(vals: &[T], order: &Ordering) -> Vec<T> {
         }
     }
 
-    if lidx < lenl {
-        sorted.extend(&lsorted[lidx..]);
+    if lidx < mid {
+        sorted.extend(&vals[lidx..mid]);
     }
-    if ridx < lenr {
-        sorted.extend(&rsorted[ridx..]);
+    if ridx < vals.len() {
+        sorted.extend(&vals[ridx..]);
     }
 
-    sorted
+    vals.copy_from_slice(&sorted[..]);
 }
 
 #[cfg(test)]
@@ -273,7 +263,7 @@ mod tests {
 
     #[test]
     fn moej_sort_test() {
-        let nums: Vec<i32> = gen_rands(10_000);
+        let mut nums: Vec<i32> = gen_rands(10_000);
 
         let ushape = Shape::from_slice(&nums);
 
@@ -282,9 +272,9 @@ mod tests {
         assert!(!ushape.descending());
         assert!(!ushape.ascending());
 
-        let sorted = moej_sort(&nums, &std::cmp::Ordering::Less);
+        moej_sort(&mut nums, &std::cmp::Ordering::Less);
 
-        let sshape = Shape::from_slice(&sorted);
+        let sshape = Shape::from_slice(&nums);
 
         assert!(sshape.sorted());
         assert!(sshape.ascending());
