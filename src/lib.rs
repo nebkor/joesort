@@ -220,6 +220,8 @@ fn moej_sort<T: Sortable>(vals: &mut [T], order: &Ordering) {
                 lidx += 1;
                 sorted.push(l);
             }
+        } else {
+            panic!()
         }
     }
 
