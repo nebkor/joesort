@@ -1,12 +1,15 @@
-use num_traits::{FromPrimitive, ToPrimitive, Zero};
+use std::cmp::Ordering;
+use std::fmt::{Debug, Display};
 use std::iter::{FromIterator, IntoIterator};
 
-use std::cmp::Ordering;
-use std::fmt::Debug;
+use num_traits::{FromPrimitive, ToPrimitive, Zero};
 
-pub trait Sortable: PartialOrd + FromPrimitive + ToPrimitive + Debug + Copy + Zero {}
+pub trait Sortable:
+    PartialOrd + FromPrimitive + ToPrimitive + Debug + Copy + Zero + Display
+{
+}
 impl<T> Sortable for T where
-    T: PartialOrd + PartialEq + FromPrimitive + ToPrimitive + Debug + Copy + Zero
+    T: PartialOrd + PartialEq + FromPrimitive + ToPrimitive + Debug + Copy + Zero + Display
 {
 }
 
@@ -43,7 +46,7 @@ impl<T: Sortable> Shape<T> {
 
     /// Initializes all fields from a slice
     pub fn from_slice(samples: &[T]) -> Self {
-        samples.iter().map(|x| *x).collect()
+        samples.iter().copied().collect()
     }
 
     /// Return the current mean.
@@ -76,6 +79,14 @@ impl<T: Sortable> Shape<T> {
 
     pub fn sorted(&self) -> bool {
         self.a_sorted || self.d_sorted
+    }
+
+    pub fn ascending(&self) -> bool {
+        self.a_sorted
+    }
+
+    pub fn descending(&self) -> bool {
+        self.d_sorted
     }
 
     pub fn size(&self) -> usize {
@@ -118,15 +129,17 @@ impl<T: Sortable> Shape<T> {
             self.max.replace(sample);
         }
 
-        if let Some(ord) = self.last_v.partial_cmp(&old_lastv) {
-            match ord {
-                Ordering::Less => {
-                    self.a_sorted = false;
+        if self.a_sorted || self.d_sorted {
+            if let Some(ord) = self.last_v.partial_cmp(&old_lastv) {
+                match ord {
+                    Ordering::Less => {
+                        self.a_sorted = false;
+                    }
+                    Ordering::Greater => {
+                        self.d_sorted = false;
+                    }
+                    _ => {}
                 }
-                Ordering::Greater => {
-                    self.d_sorted = false;
-                }
-                _ => {}
             }
         }
     }
@@ -166,12 +179,59 @@ impl<T: Sortable> Extend<T> for Shape<T> {
     }
 }
 
-pub fn joe_sort<T: Sortable>(vals: &mut [T]) {
-    let _stats = Shape::from_slice(&*vals);
-    println!("{:?}", _stats);
+pub fn joe_sort<T: Sortable>(vals: &mut [T]) -> Vec<T> {
+    moej_sort(&*vals, &Ordering::Less)
 }
 
-pub fn moej_sort<T: Sortable>(vals: &mut [T]) {}
+/// Naive merge sort
+fn moej_sort<T: Sortable>(vals: &[T], order: &Ordering) -> Vec<T> {
+    let lsorted: Vec<T>;
+    let rsorted: Vec<T>;
+    if vals.len() < 2 {
+        return vals.to_owned();
+    }
+    if vals.len() == 2 {
+        lsorted = vec![vals[0]];
+        rsorted = vec![vals[1]];
+    } else {
+        let split = vals.len() / 2;
+        let (l_orig, r_orig) = vals.split_at(split);
+        lsorted = moej_sort(l_orig, order);
+        rsorted = moej_sort(r_orig, order);
+    }
+
+    // now merge
+    let mut lidx = 0;
+    let mut ridx = 0;
+    let lenl = lsorted.len();
+    let lenr = rsorted.len();
+
+    let mut sorted = Vec::with_capacity(1.max(vals.len()));
+
+    while (lidx < lenl) && (ridx < lenr) {
+        let l = lsorted[lidx];
+        let r = rsorted[ridx];
+
+        if let Some(ord) = r.partial_cmp(&l) {
+            if &ord == order {
+                ridx += 1;
+                sorted.push(r);
+            } else {
+                lidx += 1;
+                sorted.push(l);
+            }
+        }
+    }
+
+    if lidx < lenl {
+        sorted.extend(&lsorted[lidx..]);
+    }
+    if ridx < lenr {
+        sorted.extend(&rsorted[ridx..]);
+    }
+
+    sorted
+}
 
 #[cfg(test)]
 mod tests {
@@ -209,5 +269,25 @@ mod tests {
         assert_eq!(2.0, a_shape.mean());
         assert_eq!(2.0, d_shape.mean());
         assert_eq!(2.0, u_shape.mean());
+    }
+
+    #[test]
+    fn moej_sort_test() {
+        let nums: Vec<i32> = gen_rands(10_000);
+
+        let ushape = Shape::from_slice(&nums);
+
+        // totally unsorted
+        assert!(!ushape.sorted());
+        assert!(!ushape.descending());
+        assert!(!ushape.ascending());
+
+        let sorted = moej_sort(&nums, &std::cmp::Ordering::Less);
+
+        let sshape = Shape::from_slice(&sorted);
+
+        assert!(sshape.sorted());
+        assert!(sshape.ascending());
+        assert!(!sshape.descending());
     }
 }
