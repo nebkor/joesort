@@ -1,5 +1,7 @@
 mod shape;
+mod utils;
 pub use shape::*;
+pub use utils::*;
 
 pub fn joe_sort<T: Sortable>(vals: &mut [T]) {
     moej_sort(vals, &Ordering::Less);
@@ -59,22 +61,7 @@ fn moej_sort<T: Sortable>(vals: &mut [T], order: &Ordering) {
 
 #[cfg(test)]
 mod tests {
-    use num_traits;
-    use rand::prelude::*;
-
     use super::*;
-
-    fn gen_rands<T: num_traits::Num>(size: usize) -> Vec<T>
-    where
-        rand::distributions::Standard: Distribution<T>,
-    {
-        let mut v: Vec<T> = Vec::with_capacity(size);
-        let mut gen = thread_rng();
-        for _ in 0..size {
-            v.push(gen.gen())
-        }
-        v
-    }
 
     #[test]
     fn shape_sorted_test() {
