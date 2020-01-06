@@ -1,4 +1,4 @@
-pub use std::cmp::Ordering;
+pub use std::cmp::{Eq, Ordering, PartialEq};
 use std::fmt::{Debug, Display};
 use std::iter::{FromIterator, IntoIterator};
 
@@ -25,6 +25,21 @@ pub struct Shape<T> {
     variance: f64,
     size: usize,
 }
+
+impl<T: Sortable + PartialEq> PartialEq<Shape<T>> for Shape<T> {
+    fn eq(&self, other: &Self) -> bool {
+        self.max == other.max
+            && self.min == other.min
+            && self.mean == other.mean
+            && self.size == other.size
+            && self.d_sorted == other.d_sorted
+            && self.a_sorted == other.a_sorted
+            && self.median == other.median
+            && self.variance == other.variance
+    }
+}
+
+impl<T: Sortable + PartialEq> Eq for Shape<T> {}
 
 // Strongly inspired by, and heavily evolved from
 // https://docs.rs/streaming-stats/0.2.2/stats/struct.OnlineStats.html
@@ -176,5 +191,42 @@ impl<T: Sortable> Extend<T> for Shape<T> {
         for sample in it {
             self.add(sample)
         }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn shape_basic_test() {
+        let asc_int: Vec<u32> = vec![0, 1, 2, 3, 4];
+        let desc_int: Vec<u32> = vec![4, 3, 2, 1, 0];
+        let unsorted_u32: Vec<u32> = vec![4, 0, 2, 1, 3];
+
+        let a_shape = Shape::from_slice(&asc_int);
+        let d_shape = Shape::from_slice(&desc_int);
+        let u_shape = Shape::from_slice(&unsorted_u32);
+
+        assert!(a_shape.sorted() && a_shape.ascending());
+        assert!(d_shape.sorted() && d_shape.descending());
+        assert!(!u_shape.sorted());
+
+        assert_eq!(2.0, a_shape.mean());
+        assert_eq!(2.0, d_shape.mean());
+        assert_eq!(2.0, u_shape.mean());
+
+        let similar_shape_desc: Vec<u32> = vec![4, 2, 2, 2, 0];
+        let ssd_shape = Shape::from_slice(&similar_shape_desc[..]);
+        assert!(ssd_shape.sorted());
+        assert!(ssd_shape.descending());
+        assert!(ssd_shape.mean() == d_shape.mean());
+        assert!(ssd_shape.max() == d_shape.max());
+        assert!(ssd_shape.min() == d_shape.min());
+        // variance is different, so they're not the same shape
+        assert!(ssd_shape != d_shape);
+
+        let ssd_shape2 = Shape::from_slice(&similar_shape_desc[..]);
+        assert!(ssd_shape == ssd_shape2);
     }
 }

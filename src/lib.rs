@@ -64,25 +64,6 @@ mod tests {
     use super::*;
 
     #[test]
-    fn shape_sorted_test() {
-        let asc_int: Vec<u32> = vec![0, 1, 2, 3, 4];
-        let desc_int: Vec<u32> = vec![4, 3, 2, 1, 0];
-        let unsorted_u32: Vec<u32> = vec![4, 0, 2, 1, 3];
-
-        let a_shape = Shape::from_slice(&asc_int);
-        let d_shape = Shape::from_slice(&desc_int);
-        let u_shape = Shape::from_slice(&unsorted_u32);
-
-        assert!(a_shape.sorted());
-        assert!(d_shape.sorted());
-        assert!(!u_shape.sorted());
-
-        assert_eq!(2.0, a_shape.mean());
-        assert_eq!(2.0, d_shape.mean());
-        assert_eq!(2.0, u_shape.mean());
-    }
-
-    #[test]
     fn moej_sort_ints_test() {
         let mut nums: Vec<i32> = gen_rands(10_000);
 
@@ -94,12 +75,18 @@ mod tests {
         assert!(!ushape.ascending());
 
         moej_sort(&mut nums, &std::cmp::Ordering::Less);
+        // ascending order shape
+        let ashape = Shape::from_slice(&nums);
 
-        let sshape = Shape::from_slice(&nums);
+        assert!(ashape.sorted());
+        assert!(ashape.ascending());
+        assert!(!ashape.descending());
 
-        assert!(sshape.sorted());
-        assert!(sshape.ascending());
-        assert!(!sshape.descending());
+        moej_sort(&mut nums, &std::cmp::Ordering::Greater);
+        // descending order shape
+        let dshape: Shape<i32> = nums.iter().copied().collect(); // use the FromIterator impl
+        assert!(dshape.descending() && dshape.sorted());
+        assert!(!dshape.ascending());
     }
 
     #[test]
@@ -120,5 +107,11 @@ mod tests {
         assert!(sshape.sorted());
         assert!(sshape.ascending());
         assert!(!sshape.descending());
+
+        moej_sort(&mut nums, &std::cmp::Ordering::Greater);
+        // descending order shape
+        let dshape: Shape<f32> = nums.iter().copied().collect(); // use the FromIterator impl
+        assert!(dshape.descending() && dshape.sorted());
+        assert!(!dshape.ascending());
     }
 }
