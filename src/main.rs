@@ -10,5 +10,7 @@ fn main() {
     // println!("{:?}\n{:?}", &i8ints, sshape);
 
     let mut nums: Vec<u8> = [0, 1, 5, 2, 4].to_vec();
+    println!("{:?}", &nums);
     joe_sort(&mut nums);
+    println!("{:?}", &nums);
 }

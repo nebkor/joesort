@@ -1,3 +1,5 @@
+use std::collections::VecDeque;
+
 mod shape;
 mod utils;
 pub use shape::*;
@@ -14,43 +16,77 @@ fn moej_sort<T: Sortable>(vals: &mut [T], order: &Ordering) {
     if vlen < 2 {
         return;
     }
-    if vlen == 2 {
-        if let Some(ord) = vals[1].partial_cmp(&vals[0]) {
-            if ord == *order {
-                vals.swap(0, 1);
-            }
-        }
-        return;
-    }
+    // if vlen == 2 {
+    //     if let Some(ord) = vals[1].partial_cmp(&vals[0]) {
+    //         if ord == *order {
+    //             vals.swap(0, 1);
+    //         }
+    //     }
+    //     return;
+    // }
 
     let mid = vlen / 2;
     let (l_orig, r_orig) = vals.split_at_mut(mid);
     moej_sort(l_orig, order);
     moej_sort(r_orig, order);
 
+    let lenl = l_orig.len();
+    let lenr = r_orig.len();
+
     // now merge
     let mut sorted = Vec::with_capacity(vlen);
+    let mut q: VecDeque<T> = VecDeque::with_capacity(lenr.max(lenl));
 
-    for (l, r) in l_orig.iter().zip(r_orig.iter()) {
+    'for_loop: for (l, r) in l_orig.iter_mut().zip(r_orig.iter_mut()) {
+        'qloop: loop {
+            if q.is_empty() {
+                break;
+            }
+            let head = *q.front().unwrap();
+            if let Some(head_before_left) = head.partial_cmp(&*l) {
+                if let Some(head_before_right) = head.partial_cmp(&*r) {
+                    // OK, we work our way from left to right; head should be to the left of l and r, otherwise, leave it
+                    if head_before_right == *order && head_before_left == *order {
+                        sorted.push(q.pop_front().unwrap());
+                        continue 'qloop;
+                    }
+
+                    if head_before_right == *order {
+                        // head_before_left != order, so l must belong in sorted; leave the current head and push r
+                        sorted.push(*l);
+                        q.push_back(*r);
+                        continue 'for_loop;
+                    }
+                    if head_before_left == *order {
+                        // head_before_right != order, so r must belong?
+                        sorted.push(*r);
+                        q.push_back(*l);
+                        continue 'for_loop;
+                    }
+                }
+            }
+        }
+
+        //
         if let Some(ord) = r.partial_cmp(&l) {
             if ord == *order {
                 sorted.push(*r);
+                q.push_back(*l);
             } else {
                 sorted.push(*l);
+                q.push_back(*r);
             }
         } else {
             panic!()
         }
     }
 
-    let lenl = l_orig.len();
-    let lenr = r_orig.len();
+    sorted.extend(&mut q.drain(..));
 
     if lenl < lenr {
-        sorted.extend(&r_orig[(lenl)..]);
-    }
-    if lenr < lenl {
-        sorted.extend(&l_orig[(lenr)..]);
+        sorted.extend(&r_orig[lenl..]);
+    } else {
+        sorted.extend(&l_orig[lenr..]);
     }
 
     vals.copy_from_slice(&sorted[..]);
