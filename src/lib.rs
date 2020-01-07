@@ -29,31 +29,28 @@ fn moej_sort<T: Sortable>(vals: &mut [T], order: &Ordering) {
     moej_sort(r_orig, order);
 
     // now merge
-    let mut lidx = 0;
-    let mut ridx = mid;
-    let mut sorted = Vec::with_capacity(vals.len());
+    let mut sorted = Vec::with_capacity(vlen);
 
-    while lidx < mid && ridx < vlen {
-        let l = vals[lidx];
-        let r = vals[ridx];
+    for (l, r) in l_orig.iter().zip(r_orig.iter()) {
         if let Some(ord) = r.partial_cmp(&l) {
             if ord == *order {
-                ridx += 1;
-                sorted.push(r);
+                sorted.push(*r);
             } else {
-                lidx += 1;
-                sorted.push(l);
+                sorted.push(*l);
             }
         } else {
             panic!()
         }
     }
 
-    if lidx < mid {
-        sorted.extend(&vals[lidx..mid]);
+    let lenl = l_orig.len();
+    let lenr = r_orig.len();
+
+    if lenl < lenr {
+        sorted.extend(&r_orig[(lenl)..]);
     }
-    if ridx < vlen {
-        sorted.extend(&vals[ridx..]);
+    if lenr < lenl {
+        sorted.extend(&l_orig[(lenr)..]);
     }
 
     vals.copy_from_slice(&sorted[..]);

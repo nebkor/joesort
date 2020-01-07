@@ -13,7 +13,7 @@ impl<T> Sortable for T where
 {
 }
 
-#[derive(Debug)]
+#[derive(Debug, PartialEq)]
 pub struct Shape<T> {
     min: Option<T>,
     max: Option<T>,
@@ -26,20 +26,7 @@ pub struct Shape<T> {
     size: usize,
 }
 
-impl<T: Sortable + PartialEq> PartialEq<Shape<T>> for Shape<T> {
-    fn eq(&self, other: &Self) -> bool {
-        self.max == other.max
-            && self.min == other.min
-            && self.mean == other.mean
-            && self.size == other.size
-            && self.d_sorted == other.d_sorted
-            && self.a_sorted == other.a_sorted
-            && self.median == other.median
-            && self.variance == other.variance
-    }
-}
-
-impl<T: Sortable + PartialEq> Eq for Shape<T> {}
+impl<T: Sortable> Eq for Shape<T> {}
 
 // Strongly inspired by, and heavily evolved from
 // https://docs.rs/streaming-stats/0.2.2/stats/struct.OnlineStats.html
